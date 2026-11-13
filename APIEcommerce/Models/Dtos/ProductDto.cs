@@ -13,7 +13,7 @@ namespace APIEcommerce.Models.Dtos
         public string? ImgUrlLocal { get; set; }
         public string SKU { get; set; } = string.Empty; // PROD-001-BLK-M
         public int Stock { get; set; }
-        public DateTime CreationDate { get; set; } = DateTime.Now;
+        public DateTime CreationDate { get; set; } = DateTime.UtcNow;
         public DateTime? UpdateDate { get; set; } = null;
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;

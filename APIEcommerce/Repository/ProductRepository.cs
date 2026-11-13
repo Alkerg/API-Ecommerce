@@ -39,9 +39,9 @@ namespace APIEcommerce.Repository
                 return false;
             }
 
-            product.CreationDate = DateTime.Now;
-            product.UpdateDate = DateTime.Now;
-            
+            product.CreationDate = DateTime.UtcNow;
+            product.UpdateDate = DateTime.UtcNow;
+
             _db.Products.Add(product);
             return Save();
         }
@@ -74,6 +74,16 @@ namespace APIEcommerce.Repository
             if (categoryId <= 0) return new List<Product>();
 
             return _db.Products.Include(p => p.category).Where(p => p.CategoryId == categoryId).ToList();
+        }
+
+        public ICollection<Product> GetProductsInPages(int pageNumber, int pageSize)
+        {
+            return _db.Products.OrderBy(p => p.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        }
+
+        public int GetTotalProducts()
+        {
+            return _db.Products.Count();
         }
 
         public bool ProductExists(int id)
@@ -112,7 +122,7 @@ namespace APIEcommerce.Repository
         {
             if(product == null) return false;
             
-            product.UpdateDate = DateTime.Now;
+            product.UpdateDate = DateTime.UtcNow;
             _db.Products.Update(product);
             return Save();
         }

@@ -1,5 +1,6 @@
 ﻿using APIEcommerce.Models;
 using APIEcommerce.Models.Dtos;
+using APIEcommerce.Models.Dtos.Responses;
 using APIEcommerce.Repository;
 using APIEcommerce.Repository.IRepository;
 using Asp.Versioning;
@@ -55,6 +56,43 @@ namespace APIEcommerce.Controllers
             return Ok(productDto);
         }
 
+
+
+        [HttpGet("Paged", Name = "GetProductsInPage")]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [AllowAnonymous]
+        public IActionResult GetProductsInPage([FromQuery] int pageNumber=1, [FromQuery] int pageSize=5)
+        {
+            if(pageNumber < 1 || pageSize < 1)
+            {
+                return BadRequest("Page number and page size must be greater than 0");
+            }
+
+            var totalProducts = _productRepository.GetTotalProducts();
+            var totalPages = (int)Math.Ceiling((double)totalProducts / pageSize);
+
+            if (pageNumber > totalPages)
+            {
+                return NotFound("No more pages available");
+            }
+
+            var products = _productRepository.GetProductsInPages(pageNumber, pageSize);
+
+            var productDto = _mapper.Map<List<ProductDto>>(products);
+
+            var paginationResponse = new PaginationResponse<ProductDto>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                Items = productDto
+            };
+
+            return Ok(paginationResponse);
+        }
 
 
 

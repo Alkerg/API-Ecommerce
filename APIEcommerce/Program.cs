@@ -13,12 +13,21 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using APIEcommerce.Models;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
-var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var dbConnectionString = builder.Configuration.GetConnectionString("PostgresConnection");
 
 // Add services to the container.
-builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseSqlServer(dbConnectionString));
+builder.Services.AddDbContext<ApplicationDBContext>(options =>
+  options.UseNpgsql(dbConnectionString)
+  .UseSeeding((context, _) =>
+  {
+      var appContext = (ApplicationDBContext)context;
+      DataSeeder.SeedData(appContext, builder.Configuration);
+
+  })
+);
 
 
 builder.Services.AddResponseCaching(options =>

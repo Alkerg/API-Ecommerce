@@ -25,7 +25,7 @@ namespace APIEcommerce.Repository
 
         public bool CreateCategory(Category category)
         {
-            category.CreationDate = DateTime.Now;
+            category.CreationDate = DateTime.UtcNow;
             _db.Categories.Add(category);
             return Save();
         }
@@ -53,7 +53,7 @@ namespace APIEcommerce.Repository
 
         public bool UpdateCategory(Category category)
         {
-            category.CreationDate = DateTime.Now;
+            category.CreationDate = DateTime.UtcNow;
             _db.Categories.Update(category);
             return Save();
         }
