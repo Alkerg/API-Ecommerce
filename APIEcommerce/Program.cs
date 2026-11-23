@@ -75,6 +75,19 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = false,
         ValidateAudience = false
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (string.IsNullOrEmpty(context.Request.Headers.Authorization) &&
+                context.Request.Cookies.TryGetValue("access_token", out var token))
+            {
+                context.Token = token;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddControllers(option =>
@@ -170,12 +183,18 @@ apiVersioningBuilder.AddApiExplorer(options =>
 
 
 // CORS configuration
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+if (allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException("Configure al menos un origen en Cors:AllowedOrigins");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(PolicyNames.AllowSpecificOrigin,
-        builder =>
+        policy =>
         {
-            builder.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
+            policy.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader().AllowCredentials();
         });
 });
 
@@ -198,6 +217,27 @@ app.UseStaticFiles();
 app.UseHttpsRedirection();
 
 app.UseCors(PolicyNames.AllowSpecificOrigin);
+
+app.Use(async (context, next) =>
+{
+    var method = context.Request.Method;
+    var isUnsafeMethod = !HttpMethods.IsGet(method) &&
+        !HttpMethods.IsHead(method) &&
+        !HttpMethods.IsOptions(method) &&
+        !HttpMethods.IsTrace(method);
+
+    if (isUnsafeMethod && context.Request.Cookies.ContainsKey("access_token"))
+    {
+        var origin = context.Request.Headers["Origin"].ToString();
+        if (!allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+    }
+
+    await next();
+});
 
 app.UseResponseCaching();
 

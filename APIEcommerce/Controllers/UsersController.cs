@@ -6,6 +6,7 @@ using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace APIEcommerce.Controllers
 {
@@ -102,26 +103,38 @@ namespace APIEcommerce.Controllers
            
             var user = await _userRepository.Login(userLoginDto);
 
-            if (user == null)
+            if (user == null || string.IsNullOrWhiteSpace(user.Token))
             {
-                return Unauthorized("Invalid credentials");
+                return Unauthorized(user);
             }
 
-            return Ok(user);
+            var jwt = new JwtSecurityTokenHandler().ReadJwtToken(user.Token);
+            Response.Cookies.Append("access_token", user.Token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = new DateTimeOffset(jwt.ValidTo, TimeSpan.Zero),
+                Path = "/"
+            });
 
+            return Ok(user);
         }
 
+        [HttpPost("Logout", Name = "LogoutUser")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("access_token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/"
+            });
 
-
-
-
-
-
-
-
-
-
-
-
+            return NoContent();
+        }
     }
 }
